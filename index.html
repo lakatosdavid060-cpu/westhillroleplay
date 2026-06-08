@@ -16,6 +16,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
 <style>
 :root{
 --primary:#8b5cf6;--secondary:#6d28d9;--dark:#0a0c12;--dark-card:#141820;
@@ -123,6 +126,8 @@ background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:
 .btn-connect:hover{transform:translateY(-3px);box-shadow:0 0 30px rgba(34,197,94,.4)}
 .btn-tiktok{background:var(--tiktok);color:#fff}
 .btn-tiktok:hover{transform:translateY(-3px);box-shadow:0 0 25px rgba(255,0,80,.4)}
+.btn-danger{background:#ef4444}
+.btn-danger:hover{background:#dc2626;transform:translateY(-3px)}
 .btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:none!important}
 
 /* SECTIONS */
@@ -235,22 +240,35 @@ cursor:pointer;font-size:16px;z-index:900;transition:.3s;
 #adminFab:hover{background:rgba(139,92,246,.2);color:#fff}
 .admin-overlay{
 position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:none;
-align-items:center;justify-content:center;padding:20px;
+align-items:center;justify-content:center;padding:20px;overflow-y:auto;
 }
 .admin-overlay.open{display:flex}
 .admin-modal{
 background:var(--dark-card);border:1px solid rgba(255,255,255,.1);border-radius:20px;
-padding:30px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;
+padding:30px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;margin:auto;
 }
-.admin-modal h3{font-family:'Orbitron',sans-serif;margin-bottom:20px;color:var(--primary)}
+.admin-modal h3{font-family:'Orbitron',sans-serif;margin-bottom:20px;color:var(--primary);font-size:18px}
+.admin-modal h4{color:var(--primary);margin-top:20px;margin-bottom:10px;font-size:14px;text-transform:uppercase}
 .admin-modal label{display:block;margin:12px 0 5px;font-size:13px}
 .admin-modal input,.admin-modal textarea{
 width:100%;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
-border-radius:10px;color:#fff;font-size:13px;
+border-radius:10px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;
 }
 .admin-modal textarea{min-height:80px;resize:vertical}
-.admin-modal .btn-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.admin-modal .btn-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;justify-content:space-between}
 .admin-modal .btn{padding:10px 18px;font-size:13px}
+.admin-tabs{display:flex;gap:8px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:20px;flex-wrap:wrap}
+.admin-tabs button{background:none;border:none;color:var(--text-muted);padding:10px 15px;cursor:pointer;border-bottom:2px solid transparent;transition:.3s;font-size:13px}
+.admin-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+.admin-tab-content{display:none}
+.admin-tab-content.active{display:block}
+.item-list{max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,.05);border-radius:10px;margin:10px 0;background:rgba(255,255,255,.02)}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.item-row:last-child{border-bottom:none}
+.item-row .btn{padding:5px 10px;font-size:11px}
+.status{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.status.online{background:#22c55e}
+.status.offline{background:#ef4444}
 
 /* MOBILE */
 @media(max-width:768px){
@@ -265,6 +283,7 @@ border-radius:10px;color:#fff;font-size:13px;
 #adminFab,#backTop{bottom:16px}
 #adminFab{left:16px}
 #backTop{right:16px}
+.admin-modal{max-width:90vw;padding:20px}
 }
 </style>
 </head>
@@ -416,6 +435,20 @@ border-radius:10px;color:#fff;font-size:13px;
 </div>
 
 <script>
+// Firebase Configuration - MÓDOSÍTSD KI A SAJÁT FIREBASE ADATOKKAL!
+const firebaseConfig = {
+apiKey: "AIzaSyD-YOUR-API-KEY", // Módosítsd ki
+authDomain: "westhillrp.firebaseapp.com", // Módosítsd ki
+projectId: "westhillrp", // Módosítsd ki
+storageBucket: "westhillrp.appspot.com", // Módosítsd ki
+messagingSenderId: "YOUR-SENDER-ID", // Módosítsd ki
+appId: "YOUR-APP-ID" // Módosítsd ki
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+
 const CONFIG = {
 serverIP:'connect.westhillrp.hu:30120',
 cfxJoinCode:'6my47k8',
@@ -479,7 +512,11 @@ team_title:'Admin Team',discord_title:'Discord Közösség',discord_join:'Csatla
 discord_desc:'A Discord szerverünkön értesülsz elsőként a hírekről, eseményekről és frakció jelentkezésekről.',
 discord_btn:'Belépés Discordra',footer_slogan:'Los Santosban, uram.',footer_discord:'Discord Szerver',
 copied:'Másolva!',form_ok:'Jelentkezés sikeresen elküldve!',form_clip:'Jelentkezés vágólapra másolva. Küldd el Discordon!',
-form_err:'Hiba történt. Próbáld újra vagy írj Discordon.'
+form_err:'Hiba történt. Próbáld újra vagy írj Discordon.',
+admin_title:'Admin Panel - Firebase',admin_settings:'Beállítások',admin_content:'Tartalom',admin_news:'Hírek',
+admin_hero:'Hero szöveg',admin_slots:'Max slot',admin_newtitle:'Új hír cím',admin_newtext:'Új hír szöveg',
+admin_add:'Hozzáadás',admin_save:'Mentés',admin_delete:'Törlés',admin_logout:'Kijelentkezés',
+admin_login:'Bejelentkezés',admin_email:'Email',admin_pass:'Jelszó'
 },
 en:{
 nav_home:'Home',nav_stats:'Statistics',nav_news:'News',nav_rules:'Rules',nav_factions:'Factions',
@@ -496,13 +533,16 @@ team_title:'Admin Team',discord_title:'Discord Community',discord_join:'Join us!
 discord_desc:'Get the latest news, events and faction applications on our Discord server.',
 discord_btn:'Join Discord',footer_slogan:'In Los Santos, sir.',footer_discord:'Discord Server',
 copied:'Copied!',form_ok:'Application sent successfully!',form_clip:'Copied to clipboard. Send it on Discord!',
-form_err:'Error occurred. Try again or contact us on Discord.'
+form_err:'Error occurred. Try again or contact us on Discord.',
+admin_title:'Admin Panel - Firebase',admin_settings:'Settings',admin_content:'Content',admin_news:'News',
+admin_hero:'Hero text',admin_slots:'Max slots',admin_newtitle:'New news title',admin_newtext:'New news text',
+admin_add:'Add',admin_save:'Save',admin_delete:'Delete',admin_logout:'Logout',
+admin_login:'Login',admin_email:'Email',admin_pass:'Password'
 }
 };
 
 let currentLang = localStorage.getItem('wh_lang') || 'hu';
-let savedConfig = JSON.parse(localStorage.getItem('wh_config') || 'null');
-if(savedConfig) Object.assign(CONFIG, savedConfig);
+let currentUser = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -602,6 +642,151 @@ body:JSON.stringify({embeds:[{title:'📝 Új jelentkezés — WestHill RP',colo
 return true}catch{return false}
 }
 
+// FIREBASE & ADMIN
+function showAdminPanel(){
+if(!currentUser){
+showLoginPanel();
+return;
+}
+$('#adminModal').innerHTML=`
+<h3>🛡️ ${t('admin_title')}</h3>
+<div class="admin-tabs">
+<button class="tab-btn active" data-tab="settings">${t('admin_settings')}</button>
+<button class="tab-btn" data-tab="content">${t('admin_content')}</button>
+<button class="tab-btn" data-tab="news">${t('admin_news')}</button>
+</div>
+
+<div class="admin-tab-content active" id="tab-settings">
+<h4>${t('admin_settings')}</h4>
+<label>${t('admin_hero')}</label>
+<textarea id="admHero">${CONFIG.heroText}</textarea>
+<label>${t('admin_slots')}</label>
+<input type="number" id="admSlots" value="${CONFIG.maxSlots}">
+</div>
+
+<div class="admin-tab-content" id="tab-content">
+<h4>Szerver IP</h4>
+<input type="text" id="admIP" value="${CONFIG.serverIP}">
+<h4>Discord ID</h4>
+<input type="text" id="admDiscordId" value="${CONFIG.discordServerId}">
+<h4>Webhook (Discord)</h4>
+<input type="text" id="admWebhook" value="${CONFIG.discordWebhook}" placeholder="https://discord.com/api/webhooks/...">
+</div>
+
+<div class="admin-tab-content" id="tab-news">
+<h4>Új hír</h4>
+<input type="text" id="admNewsTitle" placeholder="${t('admin_newtitle')}">
+<textarea id="admNewsText" placeholder="${t('admin_newtext')}"></textarea>
+<button class="btn btn-primary" style="margin:10px 0" id="admAddNews">📝 ${t('admin_add')}</button>
+<h4>Meglévő hírek</h4>
+<div class="item-list" id="newsList"></div>
+</div>
+
+<div class="btn-row">
+<button class="btn btn-primary" id="admSave">💾 ${t('admin_save')}</button>
+<button class="btn btn-danger" id="admLogout">🚪 ${t('admin_logout')}</button>
+</div>
+`;
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+btn.onclick=()=>{
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.querySelectorAll('.admin-tab-content').forEach(c=>c.classList.remove('active'));
+btn.classList.add('active');
+$('#tab-'+btn.dataset.tab).classList.add('active');
+}
+});
+
+renderNewsList();
+
+$('#admSave').onclick=async()=>{
+CONFIG.heroText=$('#admHero').value;
+CONFIG.maxSlots=+$('#admSlots').value;
+CONFIG.serverIP=$('#admIP').value;
+CONFIG.discordServerId=$('#admDiscordId').value;
+CONFIG.discordWebhook=$('#admWebhook').value;
+try{
+await db.ref('config').set(CONFIG);
+alert('Mentve! ✅');
+renderAll();
+}catch(e){alert('Hiba: '+e.message)}
+};
+
+$('#admAddNews').onclick=async()=>{
+const title=$('#admNewsTitle').value;
+const text=$('#admNewsText').value;
+if(!title||!text){alert('Töltsd ki az összes mezőt!');return}
+const newItem={date:new Date().toLocaleDateString('hu-HU'),title,content:text};
+CONFIG.news.unshift(newItem);
+try{
+await db.ref('config/news').set(CONFIG.news);
+$('#admNewsTitle').value='';
+$('#admNewsText').value='';
+renderNewsList();
+renderNews();
+alert('Hír hozzáadva! ✅');
+}catch(e){alert('Hiba: '+e.message)}
+};
+
+$('#admLogout').onclick=()=>{
+auth.signOut().then(()=>{
+currentUser=null;
+$('#adminOverlay').classList.remove('open');
+alert('Kijelentkezve!');
+}).catch(e=>alert('Hiba: '+e.message));
+};
+}
+
+function renderNewsList(){
+const list=$('#newsList');
+if(!list)return;
+list.innerHTML=CONFIG.news.map((n,i)=>`
+<div class="item-row">
+<span>${n.date} - ${n.title.slice(0,30)}</span>
+<button class="btn btn-danger" onclick="deleteNews(${i})">Törlés</button>
+</div>`).join('');
+}
+
+window.deleteNews=async(i)=>{
+if(!confirm('Biztos?'))return;
+CONFIG.news.splice(i,1);
+try{
+await db.ref('config/news').set(CONFIG.news);
+renderNewsList();
+renderNews();
+alert('Törölt! ✅');
+}catch(e){alert('Hiba: '+e.message)}
+};
+
+function showLoginPanel(){
+$('#adminModal').innerHTML=`
+<h3>🔐 ${t('admin_login')}</h3>
+<label>${t('admin_email')}</label>
+<input type="email" id="admEmail" placeholder="admin@westhillrp.hu">
+<label>${t('admin_pass')}</label>
+<input type="password" id="admPassword" placeholder="••••••••">
+<div class="btn-row">
+<button class="btn btn-primary" id="admLoginBtn">${t('admin_login')}</button>
+<button class="btn btn-secondary" onclick="$('#adminOverlay').classList.remove('open')">Mégsem</button>
+</div>
+<p style="margin-top:20px;font-size:12px;opacity:.7">Firebase autentikáció szükséges!</p>
+`;
+
+$('#admLoginBtn').onclick=()=>{
+const email=$('#admEmail').value;
+const pass=$('#admPassword').value;
+if(!email||!pass){alert('Töltsd ki a mezőket!');return}
+auth.signInWithEmailAndPassword(email,pass).then(user=>{
+currentUser=user;
+showAdminPanel();
+}).catch(e=>alert('Bejelentkezési hiba: '+e.message));
+};
+}
+
+auth.onAuthStateChanged(user=>{
+if(user)currentUser=user;
+});
+
 /* EVENTS */
 window.addEventListener('load',()=>{setTimeout(()=>{$('#loader').classList.add('hide');document.body.classList.remove('loading')},1200)});
 window.addEventListener('scroll',()=>{$('.navbar').classList.toggle('scrolled',scrollY>40);$('#backTop').classList.toggle('show',scrollY>400)},{passive:true});
@@ -614,7 +799,7 @@ $('.nav-toggle').textContent=o?'✕':'☰';
 $$('.nav-links a').forEach(l=>l.addEventListener('click',()=>{$('.nav-links').classList.remove('open');$('.nav-toggle').textContent='☰'}));
 
 const secObs=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;
-const id=e.target.id;$$('.nav-links a').forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+id))})},{rootMargin: '0px 0px -40% 0px'});
+const id=e.target.id;$$('.nav-links a').forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+id))})},{rootMargin:'0px 0px -40% 0px'});
 $$('section[id]').forEach(s=>secObs.observe(s));
 
 $('#langBtn').addEventListener('click',()=>{currentLang=currentLang==='hu'?'en':'hu';localStorage.setItem('wh_lang',currentLang);applyLang()});
@@ -648,44 +833,27 @@ if((data.applyType==='Whitelist'||data.applyType==='Frakció Tag')&&data.backsto
 msg.className='form-message error';msg.textContent='A karakter történet legalább 100 karakter legyen.';return}
 if(data.applyType==='Frakció Tag'&&!data.faction){msg.className='form-message error';msg.textContent='Válassz frakciót.';return}
 $('#submitBtn').disabled=true;
-const sent=await sendDiscord(data);
-if(sent){msg.className='form-message success';msg.textContent=t('form_ok');$('#applyForm').reset()}
-else if(!CONFIG.discordWebhook){
-const txt=`WestHill RP Jelentkezés\nKarakter: ${data.characterName}\nDiscord: ${data.discordName}\nTípus: ${data.applyType}${data.faction?'\nFrakció: '+data.faction:''}${data.backstory?'\nTörténet: '+data.backstory:''}\nIndoklás: ${data.applyReason}`;
-try{await navigator.clipboard.writeText(txt);msg.className='form-message success';msg.textContent=t('form_clip');$('#applyForm').reset()}catch{msg.className='form-message error';msg.textContent=t('form_err')}
-}else{msg.className='form-message error';msg.textContent=t('form_err')}
+try{
+await db.ref('applications').push(data);
+msg.className='form-message success';msg.textContent=t('form_ok');
+$('#applyForm').reset();
+}catch(e){
+msg.className='form-message error';msg.textContent=t('form_err');
+}
 $('#submitBtn').disabled=false;
 });
 
-/* ADMIN PANEL */
-$('#adminFab').addEventListener('click',()=>{
-const pass=prompt('Admin jelszó:');
-if(pass!==CONFIG.adminPassword)return;
-$('#adminModal').innerHTML=`
-<h3>⚙ Admin Panel</h3>
-<label>Hero szöveg</label><textarea id="admHero">${CONFIG.heroText}</textarea>
-<label>Max slot</label><input type="number" id="admSlots" value="${CONFIG.maxSlots}">
-<label>Új hír cím</label><input id="admNewsTitle" placeholder="Hír címe">
-<label>Új hír szöveg</label><textarea id="admNewsText" placeholder="Hír tartalma"></textarea>
-<div class="btn-row">
-<button class="btn btn-primary" id="admSave">💾 Mentés</button>
-<button class="btn btn-secondary" id="admAddNews">📰 Hír hozzáadása</button>
-<button class="btn btn-secondary" id="admReset">♻ Reset</button>
-<button class="btn btn-secondary" id="admClose">✕ Bezárás</button>
-</div>`;
-$('#adminOverlay').classList.add('open');
-$('#admSave').onclick=()=>{CONFIG.heroText=$('#admHero').value;CONFIG.maxSlots=+$('#admSlots').value;
-localStorage.setItem('wh_config',JSON.stringify({heroText:CONFIG.heroText,maxSlots:CONFIG.maxSlots,news:CONFIG.news}));
-renderAll();fetchStats();alert('Mentve!')};
-$('#admAddNews').onclick=()=>{const title=$('#admNewsTitle').value,content=$('#admNewsText').value;
-if(!title||!content)return alert('Töltsd ki a hírt!');
-CONFIG.news.unshift({date:new Date().toLocaleDateString('hu-HU'),title,content});
-localStorage.setItem('wh_config',JSON.stringify({heroText:CONFIG.heroText,maxSlots:CONFIG.maxSlots,news:CONFIG.news}));
-renderNews();alert('Hír hozzáadva!')};
-$('#admReset').onclick=()=>{if(confirm('Biztos?')){localStorage.removeItem('wh_config');location.reload()}};
-$('#admClose').onclick=()=>$('#adminOverlay').classList.remove('open');
-});
+$('#adminFab').addEventListener('click',()=>{'#adminOverlay'.classList.add('open');showAdminPanel();$('#adminOverlay').classList.add('open')});
 $('#adminOverlay').addEventListener('click',e=>{if(e.target===$('#adminOverlay'))$('#adminOverlay').classList.remove('open')});
+
+// Firebase load config
+db.ref('config').once('value',snap=>{
+if(snap.val()){
+Object.assign(CONFIG,snap.val());
+renderAll();
+fetchStats();
+}
+});
 
 applyLang();renderAll();fetchStats();setInterval(fetchStats,60000);
 </script>
