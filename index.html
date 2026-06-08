@@ -845,9 +845,16 @@ msg.className='form-message error';msg.textContent=t('form_err');
 $('#submitBtn').disabled=false;
 });
 
-$('#adminFab').addEventListener('click',()=>{'#adminOverlay'.classList.add('open');showAdminPanel();$('#adminOverlay').classList.add('open')});
-$('#adminOverlay').addEventListener('click',e=>{if(e.target===$('#adminOverlay'))$('#adminOverlay').classList.remove('open')});
+$('#adminFab').addEventListener('click', () => {
+    $('#adminOverlay').classList.add('open');
+    showAdminPanel();
+});
 
+$('#adminOverlay').addEventListener('click', (e) => {
+    if (e.target === $('#adminOverlay')) {
+        $('#adminOverlay').classList.remove('open');
+    }
+});
 // Firebase load config
 db.ref('config').once('value',snap=>{
 if(snap.val()){
